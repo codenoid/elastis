@@ -33,7 +33,7 @@ var (
 			Required().
 			String()
 
-	FILE_FORMAT = kingpin.Flag("file-format", "csv (default) for more space efficient, msgpack for inconsistent/complex document.").
+	FILE_FORMAT = kingpin.Flag("file-format", "csv (default) for flat structure/more space efficient, msgpack for inconsistent/complex document.").
 			Envar("FILE_FORMAT").
 			Default("csv").
 			String()
