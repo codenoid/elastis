@@ -59,6 +59,7 @@ func importData(es *elasticsearch.Client) {
 
 	// Count the documents indexed
 	count := uint64(0)
+	errCount := uint64(0)
 
 	// Decide the import type
 	if *FILE_FORMAT == "msgpack" {
@@ -92,7 +93,9 @@ func importData(es *elasticsearch.Client) {
 			if err == io.EOF {
 				break
 			} else if err != nil {
-				log.Fatalf("Error reading CSV record: %s", err)
+				log.Printf("Error reading CSV record: %s", err)
+				errCount++
+				continue
 			}
 
 			// Create a map for the current record
@@ -112,7 +115,7 @@ func importData(es *elasticsearch.Client) {
 		log.Fatalf("Unexpected error: %s", err)
 	}
 
-	fmt.Println("\nDone, imported", count, "documents to", *ES_INDEX)
+	fmt.Println("\nDone, imported", count, "documents to", *ES_INDEX, "error", errCount)
 }
 
 func createIndex(es *elasticsearch.Client, indexName string) {
