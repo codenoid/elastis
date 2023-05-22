@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,13 +17,21 @@ import (
 	"github.com/vmihailenco/msgpack"
 )
 
+type Exporter interface {
+	Encode(v interface{}) error
+	Flush() error
+	SetFields(fields []string) error
+}
+
 type EsCountResponse struct {
 	Count int `json:"count"`
 }
 
 type EsSearchResponse struct {
 	Hits struct {
-		Hits []map[string]interface{} `json:"hits"`
+		Hits []struct {
+			Source map[string]interface{} `json:"_source"`
+		} `json:"hits"`
 	} `json:"hits"`
 	ScrollID string `json:"_scroll_id"`
 }
@@ -67,8 +76,20 @@ func exportData(es *elasticsearch.Client) {
 	bufferedWriter := bufio.NewWriter(file)
 	defer bufferedWriter.Flush()
 
-	// Create a MessagePack encoder with the buffered writer as the target
-	encoder := msgpack.NewEncoder(bufferedWriter)
+	var exporter Exporter
+	// Initialize the appropriate exporter
+	switch *FILE_FORMAT {
+	case "msgpack":
+		exporter = &MsgPackExporter{
+			encoder: msgpack.NewEncoder(bufferedWriter),
+		}
+	case "csv":
+		exporter = &CSVExporter{
+			writer: csv.NewWriter(bufferedWriter),
+		}
+	default:
+		log.Fatalf("Invalid export format: %s", *FILE_FORMAT)
+	}
 
 	batch := *ES_BATCH_SIZE
 
@@ -116,14 +137,16 @@ func exportData(es *elasticsearch.Client) {
 	// Get the scroll ID
 	scrollID := searchResponse.ScrollID
 
-	setCount := false
+	fields := make([]string, 0)
 	// Process the hits from the initial search request
 	for _, hit := range searchResponse.Hits.Hits {
-		if !setCount {
-			hit["total"] = totalCount
-			setCount = true
+		if len(fields) == 0 {
+			for key := range hit.Source {
+				fields = append(fields, key)
+			}
+			exporter.SetFields(fields)
 		}
-		err = encoder.Encode(hit)
+		err = exporter.Encode(hit.Source)
 		if err != nil {
 			log.Fatalf("Error encoding hit: %s", err)
 		}
@@ -165,10 +188,16 @@ func exportData(es *elasticsearch.Client) {
 
 		// Process the hits
 		for _, hit := range searchResponse.Hits.Hits {
-			err = encoder.Encode(hit)
+			err = exporter.Encode(hit.Source)
 			if err != nil {
 				log.Fatalf("Error encoding hit: %s", err)
 			}
+		}
+
+		// Flush the exporter
+		err = exporter.Flush()
+		if err != nil {
+			log.Fatalf("Error flushing exporter: %s", err)
 		}
 
 		pb.Add(len(searchResponse.Hits.Hits))

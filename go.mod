@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/alecthomas/kingpin/v2 v2.3.2
+	github.com/davecgh/go-spew v1.1.1
 	github.com/elastic/go-elasticsearch/v8 v8.7.1
 	github.com/schollz/progressbar/v3 v3.13.1
 	github.com/vmihailenco/msgpack v4.0.4+incompatible

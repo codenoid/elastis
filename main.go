@@ -28,10 +28,14 @@ var (
 		Envar("ES_PASS").
 		Required().
 		String()
-
 	ES_INDEX = kingpin.Flag("index", "Elasticsearch index").
 			Envar("ES_INDEX").
 			Required().
+			String()
+
+	FILE_FORMAT = kingpin.Flag("file-format", "csv (default) for more space efficient, msgpack for inconsistent/complex document.").
+			Envar("FILE_FORMAT").
+			Default("csv").
 			String()
 
 	ES_BATCH_SIZE = EXPORT_COMMAND.Flag("batch-size", "Elasticsearch export/dump batch size").
@@ -41,7 +45,7 @@ var (
 
 	OUTPUT = EXPORT_COMMAND.Flag("output", "Output file, used for export/dump").
 		Envar("OUTPUT_FILE").
-		Default("esdump.bin").
+		Default("esdump").
 		String()
 	INPUT = IMPORT_COMMAND.Flag("input", "Input file, used for import").
 		Envar("INPUT_FILE").

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,11 +21,7 @@ import (
 	"github.com/vmihailenco/msgpack"
 )
 
-type EsSearchResponseHit struct {
-	Index  string                 `msgpack:"_index"`
-	Id     string                 `msgpack:"_id"`
-	Source map[string]interface{} `msgpack:"_source"`
-}
+type EsSearch map[string]interface{}
 
 func importData(es *elasticsearch.Client) {
 	if *CREATE_INDEX {
@@ -47,9 +44,6 @@ func importData(es *elasticsearch.Client) {
 	// Create a buffered reader to improve performance
 	bufferedReader := bufio.NewReader(file)
 
-	// Create a MessagePack decoder with the buffered reader as the source
-	decoder := msgpack.NewDecoder(bufferedReader)
-
 	// Create a progress bar
 	pb := progressbar.Default(-1, "Importing")
 
@@ -66,47 +60,51 @@ func importData(es *elasticsearch.Client) {
 	// Count the documents indexed
 	count := uint64(0)
 
-	for {
-		var hit EsSearchResponseHit
-		if err := decoder.Decode(&hit); err != nil {
+	// Decide the import type
+	if *FILE_FORMAT == "msgpack" {
+		// Create a MessagePack decoder with the buffered reader as the source
+		decoder := msgpack.NewDecoder(bufferedReader)
+
+		for {
+			var hit EsSearch
+			if err := decoder.Decode(&hit); err != nil {
+				if err == io.EOF {
+					break
+				}
+				pb.Describe(fmt.Sprintf("ERROR: %s", err))
+				continue
+			}
+
+			addToIndex(bi, hit, pb, &count)
+		}
+	} else if *FILE_FORMAT == "csv" {
+		// Create a CSV reader with the buffered reader as the source
+		csvReader := csv.NewReader(bufferedReader)
+
+		// Read the header line
+		header, err := csvReader.Read()
+		if err != nil {
+			log.Fatalf("Error reading CSV header: %s", err)
+		}
+
+		for {
+			record, err := csvReader.Read()
 			if err == io.EOF {
 				break
+			} else if err != nil {
+				log.Fatalf("Error reading CSV record: %s", err)
 			}
-			pb.Describe(fmt.Sprintf("ERROR: %s", err))
-			continue
+
+			// Create a map for the current record
+			var hit EsSearch = make(map[string]interface{})
+			for i, val := range record {
+				hit[header[i]] = val
+			}
+
+			addToIndex(bi, hit, pb, &count)
 		}
-
-		data, err := json.Marshal(hit.Source)
-		if err != nil {
-			log.Fatalf("Cannot encode article %s: %s", hit.Id, err)
-		}
-		bi.Add(
-			context.Background(),
-			esutil.BulkIndexerItem{
-				// Action field configures the operation to perform (index, create, delete, update)
-				Action: "create",
-
-				// DocumentID is the (optional) document ID
-				DocumentID: hit.Id,
-				// Body is an `io.Reader` with the payload
-				Body: bytes.NewReader(data),
-
-				// OnSuccess is called for each successful operation
-				OnSuccess: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem) {
-					pb.Add(1)
-					atomic.AddUint64(&count, 1)
-				},
-
-				// OnFailure is called for each failed operation
-				OnFailure: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem, err error) {
-					if err != nil {
-						pb.Describe("ERROR: " + err.Error())
-					} else {
-						pb.Describe(fmt.Sprintf("ERROR: %s: %s", res.Error.Type, res.Error.Reason))
-					}
-				},
-			},
-		)
+	} else {
+		log.Fatalf("Unknown import type: %s", *FILE_FORMAT)
 	}
 
 	// Index the remaining documents in the buffer
@@ -147,4 +145,36 @@ func createIndex(es *elasticsearch.Client, indexName string) {
 	defer res.Body.Close()
 
 	fmt.Printf("Index %s created successfully.\n", indexName)
+}
+
+func addToIndex(bi esutil.BulkIndexer, hit EsSearch, pb *progressbar.ProgressBar, count *uint64) {
+	data, err := json.Marshal(hit)
+	if err != nil {
+		log.Fatalf("Cannot encode record %s: %s", hit, err)
+	}
+	bi.Add(
+		context.Background(),
+		esutil.BulkIndexerItem{
+			// Action field configures the operation to perform (index, create, delete, update)
+			Action: "create",
+
+			// Body is an `io.Reader` with the payload
+			Body: bytes.NewReader(data),
+
+			// OnSuccess is called for each successful operation
+			OnSuccess: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem) {
+				pb.Add(1)
+				atomic.AddUint64(count, 1)
+			},
+
+			// OnFailure is called for each failed operation
+			OnFailure: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem, err error) {
+				if err != nil {
+					pb.Describe("ERROR: " + err.Error())
+				} else {
+					pb.Describe(fmt.Sprintf("ERROR: %s: %s", res.Error.Type, res.Error.Reason))
+				}
+			},
+		},
+	)
 }
