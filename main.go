@@ -1,8 +1,10 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/alecthomas/kingpin/v2"
@@ -63,6 +65,9 @@ func main() {
 	cmd := kingpin.Parse()
 
 	cfg := elasticsearch.Config{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
 		Addresses: []string{*ES_URL},
 		Username:  *ES_USER,
 		Password:  *ES_PASS,
