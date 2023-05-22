@@ -148,6 +148,9 @@ func createIndex(es *elasticsearch.Client, indexName string) {
 }
 
 func addToIndex(bi esutil.BulkIndexer, hit EsSearch, pb *progressbar.ProgressBar, count *uint64) {
+	for _, field := range *IGNORE_FIELD {
+		delete(hit, field)
+	}
 	data, err := json.Marshal(hit)
 	if err != nil {
 		log.Fatalf("Cannot encode record %s: %s", hit, err)

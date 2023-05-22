@@ -54,6 +54,10 @@ var (
 	CREATE_INDEX = IMPORT_COMMAND.Flag("create-index", "Create index before importing data").
 			Envar("CREATE_INDEX").
 			Bool()
+
+	IGNORE_FIELD = kingpin.Flag("ignore-field", "Ignore field when importing data").
+			Envar("IGNORE_FIELD").
+			Strings()
 )
 
 func main() {

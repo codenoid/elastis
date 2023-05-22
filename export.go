@@ -146,6 +146,9 @@ func exportData(es *elasticsearch.Client) {
 			}
 			exporter.SetFields(fields)
 		}
+		for _, field := range *IGNORE_FIELD {
+			delete(hit.Source, field)
+		}
 		err = exporter.Encode(hit.Source)
 		if err != nil {
 			log.Fatalf("Error encoding hit: %s", err)
