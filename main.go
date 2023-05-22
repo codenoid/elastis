@@ -26,7 +26,6 @@ var (
 		String()
 	ES_PASS = kingpin.Flag("pass", "Elasticsearch password").
 		Envar("ES_PASS").
-		Required().
 		String()
 	ES_INDEX = kingpin.Flag("index", "Elasticsearch index").
 			Envar("ES_INDEX").
