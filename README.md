@@ -7,7 +7,7 @@ Export, Import and Copy (between two host) Elasticsearch data with ease.
 ## Installation
 
 ```ps1
-go install github.com/codenoid/elastis@latest
+go install github.com/codenoid/elastis@main
 ```
 
 ## Help
@@ -26,6 +26,9 @@ Flags:
   --file-format="csv"            csv (default) for flat structure/more space
                                  efficient, msgpack for inconsistent/complex
                                  document. ($FILE_FORMAT)
+  --ignore-field=IGNORE-FIELD ...
+                                 Ignore field when importing data, separated by
+                                 comma ($IGNORE_FIELD)
 
 Commands:
 help [<command>...]

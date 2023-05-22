@@ -55,7 +55,7 @@ var (
 			Envar("CREATE_INDEX").
 			Bool()
 
-	IGNORE_FIELD = kingpin.Flag("ignore-field", "Ignore field when importing data").
+	IGNORE_FIELD = kingpin.Flag("ignore-field", "Ignore field when importing data, separated by comma").
 			Envar("IGNORE_FIELD").
 			Strings()
 )
