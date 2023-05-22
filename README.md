@@ -4,6 +4,12 @@ Export, Import and Copy (between two host) Elasticsearch data with ease.
 
 ![Demo GIF](demo.gif)
 
+## Installation
+
+```ps1
+go install github.com/codenoid/elastis@latest
+```
+
 ## Help
 
 ```ps1
