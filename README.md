@@ -2,6 +2,8 @@
 
 Export, Import and Copy (between two host) Elasticsearch data with ease.
 
+![Demo GIF](demo.gif)
+
 ## Help
 
 ```ps1
