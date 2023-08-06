@@ -64,6 +64,11 @@ var (
 			Envar("CSV_ERROR_FILE").
 			Default("").
 			String()
+
+	DEBUG = kingpin.Flag("debug", "Enable debug mode").
+		Envar("DEBUG").
+		Default("false").
+		Bool()
 )
 
 func main() {

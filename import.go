@@ -93,7 +93,9 @@ func importData(es *elasticsearch.Client) {
 			if err == io.EOF {
 				break
 			} else if err != nil {
-				log.Printf("Error reading CSV record: %s", err)
+				if *DEBUG {
+					log.Printf("Error reading CSV record: %s", err)
+				}
 				if *CSV_ERROR_FILE != "" {
 					f, err := os.OpenFile(*CSV_ERROR_FILE, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 					if err != nil {
@@ -157,7 +159,9 @@ func createIndex(es *elasticsearch.Client, indexName string) {
 
 	defer res.Body.Close()
 
-	fmt.Printf("Index %s created successfully.\n", indexName)
+	if *DEBUG {
+		fmt.Printf("Index %s created successfully.\n", indexName)
+	}
 }
 
 func addToIndex(bi esutil.BulkIndexer, hit EsSearch, pb *progressbar.ProgressBar, count *uint64) {
