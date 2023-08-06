@@ -94,6 +94,16 @@ func importData(es *elasticsearch.Client) {
 				break
 			} else if err != nil {
 				log.Printf("Error reading CSV record: %s", err)
+				if *CSV_ERROR_FILE != "" {
+					f, err := os.OpenFile(*CSV_ERROR_FILE, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+					if err != nil {
+						log.Fatalf("Error opening CSV error file: %s", err)
+					}
+					if _, err := f.WriteString(strings.Join(record, ",") + "\n"); err != nil {
+						log.Fatalf("Error writing CSV error file: %s", err)
+					}
+					f.Close()
+				}
 				errCount++
 				continue
 			}

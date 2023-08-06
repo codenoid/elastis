@@ -59,6 +59,11 @@ var (
 	IGNORE_FIELD = kingpin.Flag("ignore-field", "Ignore field when importing data, separated by comma").
 			Envar("IGNORE_FIELD").
 			Strings()
+
+	CSV_ERROR_FILE = kingpin.Flag("csv-error-file", "Used to store invalid csv line while importing data").
+			Envar("CSV_ERROR_FILE").
+			Default("").
+			String()
 )
 
 func main() {
